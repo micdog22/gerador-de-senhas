@@ -1,0 +1,11 @@
+{
+  "name": "gerador-de-senhas",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Senhas fortes e frases-senha com palavras em português, entropia exata, medidor de força e verificação de vazamento por k-anonimato.",
+  "type": "module",
+  "scripts": { "test": "node --test" },
+  "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/micdog22/gerador-de-senhas.git" },
+  "homepage": "https://micdog22.github.io/gerador-de-senhas/"
+}

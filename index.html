@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://api.pwnedpasswords.com; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Gerador de Senhas: senhas fortes e frases-senha em português</title>
+  <meta name="description" content="Gere senhas fortes e frases-senha com palavras em português usando aleatoriedade criptográfica, veja a entropia e o tempo para quebrar e confira se uma senha já vazou sem enviá-la.">
+  <meta name="theme-color" content="#15803d">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./src/app.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <h1>Gerador de Senhas</h1>
+    <p class="lead">Senhas fortes e frases-senha em português, sorteadas no seu navegador com aleatoriedade criptográfica.</p>
+  </header>
+
+  <main>
+    <p class="local-note">
+      <strong>Nada sai do seu aparelho.</strong>
+      As senhas são geradas e analisadas aqui. A única conexão possível é a verificação de vazamento, e só quando você clica no botão.
+    </p>
+
+    <section class="card" aria-labelledby="gen-title">
+      <h2 id="gen-title">Gerar</h2>
+      <div class="tabs" role="tablist" aria-label="Tipo de senha">
+        <button type="button" role="tab" id="tab-password" aria-controls="panel-password" aria-selected="true">Senha aleatória</button>
+        <button type="button" role="tab" id="tab-phrase" aria-controls="panel-phrase" aria-selected="false" tabindex="-1">Frase-senha</button>
+      </div>
+
+      <div class="result-box">
+        <output class="result" id="result" aria-live="polite" aria-label="Senha gerada"></output>
+        <div class="actions">
+          <button type="button" class="btn" id="regenerate">Gerar outra</button>
+          <button type="button" class="btn secondary" id="copy">Copiar</button>
+        </div>
+        <p class="status" id="copy-status" role="status" aria-live="polite"></p>
+      </div>
+
+      <div role="tabpanel" id="panel-password" aria-labelledby="tab-password" class="options">
+        <label class="range">
+          <span>Tamanho: <output id="length-out">16</output> caracteres</span>
+          <input type="range" id="length" min="8" max="64" value="16">
+        </label>
+        <fieldset class="checks">
+          <legend>Usar</legend>
+          <label><input type="checkbox" id="lower" checked> Minúsculas (a-z)</label>
+          <label><input type="checkbox" id="upper" checked> Maiúsculas (A-Z)</label>
+          <label><input type="checkbox" id="digits" checked> Números (0-9)</label>
+          <label><input type="checkbox" id="symbols" checked> Símbolos (!@#$...)</label>
+        </fieldset>
+        <label class="check"><input type="checkbox" id="ambiguous"> Evitar caracteres parecidos (I, l, 1, O, 0, o)</label>
+        <label class="check"><input type="checkbox" id="each" checked> Pelo menos um de cada tipo marcado</label>
+      </div>
+
+      <div role="tabpanel" id="panel-phrase" aria-labelledby="tab-phrase" class="options" hidden>
+        <label class="range">
+          <span>Palavras: <output id="words-out">6</output></span>
+          <input type="range" id="words" min="3" max="12" value="6">
+        </label>
+        <div class="row">
+          <label class="field">
+            <span>Separador</span>
+            <select id="separator">
+              <option value="hifen">Hífen ( - )</option>
+              <option value="espaco">Espaço</option>
+              <option value="ponto">Ponto ( . )</option>
+              <option value="sublinhado">Sublinhado ( _ )</option>
+              <option value="nenhum">Nenhum</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Maiúsculas</span>
+            <select id="capitalize">
+              <option value="none">Nenhuma</option>
+              <option value="first">Inicial de cada palavra</option>
+              <option value="random">Uma palavra sorteada em MAIÚSCULAS</option>
+            </select>
+          </label>
+        </div>
+        <label class="check"><input type="checkbox" id="digit"> Acrescentar um número a uma palavra sorteada</label>
+        <p class="muted small">
+          As palavras vêm de uma lista com 2.048 palavras comuns, sem acento, de 4 a 8 letras.
+          Como 2.048 = 2<sup>11</sup>, cada palavra sorteada vale 11 bits.
+        </p>
+      </div>
+
+      <div class="strength-box">
+        <p class="bits"><strong id="gen-bits">0 bits</strong> de entropia <span class="badge" id="gen-label"></span></p>
+        <div class="meter" aria-hidden="true"><span id="gen-meter"></span></div>
+        <p class="muted small" id="gen-note"></p>
+        <table class="times" id="gen-times">
+          <caption>Tempo médio para um ataque acertar</caption>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="test-title">
+      <h2 id="test-title">Testar uma senha</h2>
+      <p class="muted small">A análise roda aqui no navegador. Nada do que você digita é enviado, a não ser que clique em <strong>Verificar se vazou</strong>.</p>
+      <form class="pw-field" id="test-form" autocomplete="off">
+        <label for="test" class="visually-hidden">Senha para testar</label>
+        <input type="password" id="test" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Digite ou cole uma senha">
+        <button type="button" class="btn ghost" id="toggle" aria-pressed="false">Mostrar</button>
+      </form>
+      <div class="meter big" aria-hidden="true"><span id="test-meter"></span></div>
+      <p class="summary" id="test-summary" aria-live="polite">Digite uma senha para ver a análise.</p>
+      <ul class="patterns" id="test-patterns"></ul>
+      <ul class="tips" id="test-tips"></ul>
+      <table class="times" id="test-times">
+        <caption>Tempo médio para um ataque acertar</caption>
+        <tbody></tbody>
+      </table>
+
+      <div class="pwned">
+        <button type="button" class="btn secondary" id="pwned">Verificar se vazou</button>
+        <p class="status" id="pwned-status" role="status" aria-live="polite"></p>
+        <details>
+          <summary>Como a verificação protege a sua senha</summary>
+          <ol>
+            <li>O navegador calcula o SHA-1 da senha, um código de 40 caracteres, como <code>5BAA61E4C9...</code>.</li>
+            <li>Só os <strong>5 primeiros caracteres</strong> (<code>5BAA6</code>) são enviados ao serviço Have I Been Pwned.</li>
+            <li>O serviço devolve centenas de códigos vazados que começam com esses 5 caracteres, com quantas vezes cada um apareceu.</li>
+            <li>A comparação com o resto do código acontece aqui. Nem a senha nem o código completo saem do aparelho.</li>
+          </ol>
+          <p class="muted small">Esse método se chama k-anonimato: o mesmo prefixo é compartilhado por muitas senhas, então o serviço não sabe qual delas foi consultada. A consulta também pede respostas com enchimento, para que o tamanho da resposta não dê pistas.</p>
+        </details>
+      </div>
+    </section>
+
+    <section class="card explain" aria-labelledby="how-title">
+      <h2 id="how-title">Boas práticas</h2>
+      <ul>
+        <li>Use uma senha diferente em cada site. Quando um site vaza, quem ataca testa a mesma senha nos outros.</li>
+        <li>Para senhas que você precisa digitar ou lembrar, frases-senha com 5 ou mais palavras sorteadas são fortes e fáceis de memorizar.</li>
+        <li>Para o resto, deixe um gerenciador de senhas criar e guardar senhas aleatórias longas.</li>
+        <li>Ative a verificação em duas etapas nos serviços importantes (e-mail, banco, redes sociais).</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Tudo roda no seu navegador. Código aberto no <a href="https://github.com/micdog22/gerador-de-senhas">GitHub</a> · Licença MIT</p>
+  </footer>
+</body>
+</html>
